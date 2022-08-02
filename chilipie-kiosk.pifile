@@ -3,10 +3,10 @@ FROM https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_ar
 # Increase the image by 1GB
 PUMP 1000M
 
-ENV LOCALE 'en_US.UTF-8\ UTF-8' # or e.g. "fi_FI.UTF-8\ UTF-8" for Finland
-ENV LANGUAGE 'en_US.UTF-8' # should match above
-ENV KEYBOARD 'us' # or e.g. "fi" for Finnish
-ENV TIMEZONE 'Etc/UTC' # or e.g. "Europe/Helsinki"; see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+ENV LOCALE 'pt_BR.UTF-8\ UTF-8' # or e.g. "fi_FI.UTF-8\ UTF-8" for Finland
+ENV LANGUAGE 'pt_BR.UTF-8' # should match above
+ENV KEYBOARD 'br' # or e.g. "fi" for Finnish
+ENV TIMEZONE 'America/Recife' # or e.g. "Europe/Helsinki"; see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 # Setting locale
 # We want to do this as early as possible, so perl et al won't complain about misconfigured locales for the rest of the image prep
@@ -15,8 +15,8 @@ RUN locale-gen
 RUN bash -c 'echo -e "LANGUAGE=$LANGUAGE\nLC_ALL=$LANGUAGE" | tee /etc/environment'
 
 # Setting hostname
-RUN bash -c 'echo "chilipie-kiosk" | tee /etc/hostname'
-RUN perl -i -p0e 's/raspberrypi/chilipie-kiosk/g' /etc/hosts
+RUN bash -c 'echo "pi-tv" | tee /etc/hostname'
+RUN perl -i -p0e 's/raspberrypi/pi-tv/g' /etc/hosts
 
 # Enabling auto-login to CLI
 # From raspi-config: https://github.com/RPi-Distro/raspi-config/blob/d98686647ced7c0c0490dc123432834735d1c13d/raspi-config#L1313-L1321
@@ -48,7 +48,8 @@ RUN perl -i -p0e 's#--autologin pi#--skip-login --noissue --login-options "-f pi
 
 # Installing packages
 RUN apt-get update
-RUN bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y vim matchbox-window-manager unclutter mailutils nitrogen jq chromium-browser xserver-xorg xinit rpd-plym-splash xdotool rng-tools xinput-calibrator cec-utils'
+RUN apt-get full-upgrade
+RUN bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y vim matchbox-window-manager unclutter mailutils nitrogen jq chromium-browser xserver-xorg xinit rpd-plym-splash xdotool rng-tools xinput-calibrator cec-utils realvnc-vnc-server realvnc-vnc-viewer'
 # We install mailutils just so that you can check "mail" for cronjob output
 
 # Setting home directory default content
@@ -57,6 +58,7 @@ INSTALL /files/home /home/pi
 
 # Setting splash screen background
 RUN rm /usr/share/plymouth/themes/pix/splash.png
+RUN wget -O /home/pi/background.png http://sistemas.grupoolhodagua.com.br/img/Negativos/Grupo_Hor%20-%20Fundo_Preto.PNG
 RUN ln -s /home/pi/background.png /usr/share/plymouth/themes/pix/splash.png
 
 # Installing default crontab
