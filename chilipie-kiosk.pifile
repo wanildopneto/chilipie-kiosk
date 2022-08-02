@@ -1,7 +1,7 @@
-FROM https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2022-01-28/2022-01-28-raspios-bullseye-armhf-lite.zip
+FROM https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-04-07/2022-04-04-raspios-bullseye-arm64-lite.img.xz
 
-# Increase the image by 1GB
-PUMP 1000M
+# Increase the image by 2GB
+PUMP 2000M
 
 ENV LOCALE 'pt_BR.UTF-8\ UTF-8' # or e.g. "fi_FI.UTF-8\ UTF-8" for Finland
 ENV LANGUAGE 'pt_BR.UTF-8' # should match above
@@ -14,6 +14,14 @@ RUN bash -c 'echo $LOCALE | tee /etc/locale.gen'
 RUN locale-gen
 RUN bash -c 'echo -e "LANGUAGE=$LANGUAGE\nLC_ALL=$LANGUAGE" | tee /etc/environment'
 
+# Setting keyboard layout
+RUN bash -c 'echo -e "XKBMODEL=pc105\nXKBLAYOUT=$KEYBOARD\nXKBVARIANT=\nXKBOPTIONS=\nBACKSPACE=guess" | tee /etc/default/keyboard'
+RUN dpkg-reconfigure -f noninteractive keyboard-configuration
+
+# Setting timezone
+RUN bash -c 'echo $TIMEZONE | tee /etc/timezone'
+RUN dpkg-reconfigure -f noninteractive tzdata
+
 # Setting hostname
 RUN bash -c 'echo "pi-tv" | tee /etc/hostname'
 RUN perl -i -p0e 's/raspberrypi/pi-tv/g' /etc/hosts
@@ -22,6 +30,7 @@ RUN perl -i -p0e 's/raspberrypi/pi-tv/g' /etc/hosts
 # From raspi-config: https://github.com/RPi-Distro/raspi-config/blob/d98686647ced7c0c0490dc123432834735d1c13d/raspi-config#L1313-L1321
 # See also: https://github.com/futurice/chilipie-kiosk/issues/61#issuecomment-524622522
 RUN systemctl set-default multi-user.target
+RUN systemctl enable getty@tty1.service
 RUN ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
 RUN ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty2.service
 RUN ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty3.service
@@ -32,14 +41,6 @@ RUN bash -c 'echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin
 RUN bash -c 'echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin pi --noclear %I \$TERM\n" | tee /etc/systemd/system/getty@tty2.service.d/autologin.conf'
 RUN bash -c 'echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin pi --noclear %I \$TERM\n" | tee /etc/systemd/system/getty@tty3.service.d/autologin.conf'
 
-# Setting timezone
-RUN bash -c 'echo $TIMEZONE | tee /etc/timezone'
-RUN dpkg-reconfigure -f noninteractive tzdata
-
-# Setting keyboard layout
-RUN bash -c 'echo -e "XKBMODEL=pc105\nXKBLAYOUT=$KEYBOARD\nXKBVARIANT=\nXKBOPTIONS=\nBACKSPACE=guess" | tee /etc/default/keyboard'
-RUN dpkg-reconfigure -f noninteractive keyboard-configuration
-
 # Silencing console logins
 # this is to avoid a brief flash of the console login before X comes up
 RUN rm /etc/profile.d/sshpwd.sh /etc/profile.d/wifi-check.sh # remove warnings about default password and WiFi country (https://raspberrypi.stackexchange.com/a/105234)
@@ -48,8 +49,7 @@ RUN perl -i -p0e 's#--autologin pi#--skip-login --noissue --login-options "-f pi
 
 # Installing packages
 RUN apt-get update
-RUN apt-get full-upgrade
-RUN bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y vim matchbox-window-manager unclutter mailutils nitrogen jq chromium-browser xserver-xorg xinit rpd-plym-splash xdotool rng-tools xinput-calibrator cec-utils realvnc-vnc-server realvnc-vnc-viewer'
+RUN bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y vim matchbox-window-manager unclutter mailutils nitrogen jq chromium-browser xserver-xorg xinit rpd-plym-splash xdotool rng-tools xinput-calibrator cec-utils tightvncserver'
 # We install mailutils just so that you can check "mail" for cronjob output
 
 # Setting home directory default content
